@@ -1,3 +1,6 @@
+# ggquiver 0.3.1 (25 November 2021)
+* Fixed issue with plotting resized vectors using the `vecsize` option (#8).
+
 # ggquiver 0.3.0 (29 October 2021)
 * Improved handling of non cartesian coordinate systems.
 * Fixed issue with plotting arrows on `ggmap::qmplot()` (#7).
