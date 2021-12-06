@@ -1,3 +1,7 @@
+# ggquiver 0.3.2
+* Improve usage of plot coordinate system when scaling arrow size (#9).
+* Fixed angle of line when centered arrows are used.
+
 # ggquiver 0.3.1 (25 November 2021)
 * Fixed issue with plotting resized vectors using the `vecsize` option (#8).
 
