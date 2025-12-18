@@ -1,3 +1,7 @@
+# ggquiver 0.4.0
+* Arrows now respect scale transformations on x/y aesthetics (#13).
+* Arrows now support `grid::arrow()` appearance options (#14).
+
 # ggquiver 0.3.3
 * Remove suggest for ggmap due to upstream api requirements.
 

@@ -55,10 +55,14 @@ geom_quiver <- function(mapping = NULL, data = NULL,
 #' @export
 GeomQuiver <- ggproto(
   "GeomQuiver", ggplot2::GeomSegment,
-  draw_panel = function(data, panel_params, coord, arrow = NULL, lineend = "butt", na.rm = FALSE) {
-    # Compute appropriate arrow size
+  draw_panel = function(
+    data, panel_params, coord, 
+    arrow = grid::arrow(), 
+    lineend = "butt", na.rm = FALSE
+  ) {
+    # Apply coordinate transformations to get proper arrow lengths
     if(inherits(coord, "CoordMap")) {
-      # Get around CoordMap transform method not transforming xend and yend
+      # Workaround for CoordMap transform method not transforming xend and yend
       t_data <- coord$transform(data[c("x", "y")], panel_params)
       t_data[c("xend", "yend")] <- coord$transform(
         `colnames<-`(data[c("xend", "yend")], c("x", "y")),
@@ -67,12 +71,13 @@ GeomQuiver <- ggproto(
     } else {
       t_data <- coord$transform(data, panel_params)
     }
-    data$arrowsize <- with(t_data, sqrt((x - xend) ^ 2 + (y - yend) ^ 2) * 0.5)
+    
+    arrow$length <- arrow$length*10*with(t_data, sqrt((x - xend) ^ 2 + (y - yend) ^ 2) * 0.5)
+
     # Re-use segments to produce arrows
     ggplot2::GeomSegment$draw_panel(
       data, panel_params, coord,
-      arrow = grid::arrow(length = unit(data$arrowsize, "npc")),
-      lineend = lineend
+      arrow = arrow, lineend = lineend
     )
   }
 )
