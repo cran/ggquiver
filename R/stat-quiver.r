@@ -42,9 +42,9 @@ stat_quiver <- function(mapping = NULL, data = NULL,
 #' @export
 StatQuiver <- ggplot2::ggproto(
   "StatQuiver", ggplot2::Stat,
-  required_aes = c("u", "v"),
+  required_aes = c("x", "y", "u", "v"),
 
-  compute_panel = function(self, data, scales, center=FALSE, rescale=FALSE, vecsize=NULL, na.rm=FALSE) {
+  compute_panel = function(self, data, scales, center=FALSE, rescale=FALSE, vecsize=NULL) {
     if (rescale) {
       data$u <- as.numeric(scale(data$u))
       data$v <- as.numeric(scale(data$v))
@@ -54,14 +54,37 @@ StatQuiver <- ggplot2::ggproto(
     data$x <- scales$x$get_transformation()$inverse(data$x)
     data$y <- scales$y$get_transformation()$inverse(data$y)
 
-    gridpoints <- c(abs(diff(sort(unique(data$x)))), abs(diff(sort(unique(data$y)))))
-    gridsize <- min(gridpoints, na.rm = TRUE)
+    x_diffs <- abs(diff(sort(unique(data$x))))
+    y_diffs <- abs(diff(sort(unique(data$y))))
+    gridpoints <- c(x_diffs, y_diffs)
+    # With a single distinct x value and a single distinct y value (e.g. one
+    # data point), no spacing can be measured in either dimension and no
+    # grid size can be identified.
+    gridsize <- if (length(gridpoints) > 0) min(gridpoints, na.rm = TRUE) else NA_real_
+    is_regular <- function(diffs) length(diffs) == 0 || length(unique(round(diffs, 2))) == 1
     if (is.null(vecsize)) {
-      # Detect if x and y form a grid
-      vecsize <- if (length(unique(round(gridpoints, 2))) > 2) 0 else 1
+      # Detect if x and y form a grid. Regularity is checked separately for
+      # each dimension (rather than pooling x- and y-spacings together),
+      # since irregular real-world data (e.g. GPS coordinates) can otherwise
+      # be misclassified as a grid whenever the x- and y-spacings happen to
+      # coincide.
+      vecsize <- if (!is.na(gridsize) && is_regular(x_diffs) && is_regular(y_diffs)) 1 else 0
     }
     data$veclength <- with(data, sqrt(u ^ 2 + v ^ 2))
-    data$vectorsize <- if (vecsize == 0) 1 else gridsize / max(data$veclength, na.rm = TRUE) * vecsize
+    maxveclength <- max(data$veclength, na.rm = TRUE)
+    data$vectorsize <- if (vecsize == 0 || maxveclength == 0) {
+      # When every vector has zero length there is nothing to scale against
+      # (this would otherwise divide by zero and turn every position into NA).
+      1
+    } else if (is.na(gridsize)) {
+      cli::cli_warn(c(
+        "!" = "{.fn stat_quiver} could not determine a grid size to scale {.arg vecsize} against.",
+        "i" = "At least two distinct x or y values are needed; vectors will not be scaled."
+      ))
+      1
+    } else {
+      gridsize / maxveclength * vecsize
+    }
 
     # Compute vector start and end positions on original scale
     c <- if (center) 0.5 else 0
